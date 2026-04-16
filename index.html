@@ -351,10 +351,42 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
 
   <!-- 기록 탭 -->
   <div class="tc" id="c-records">
+    <!-- 연도별/월별 요약 -->
+    <div id="rec-year-summary" style="margin-bottom:6px;"></div>
     <div id="rec-list"></div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button onclick="G.exportExcel()" style="flex:1;padding:12px;background:#fff;border:1.5px solid #16a34a;border-radius:var(--rmd);font-family:var(--font);font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;">📊 엑셀 내보내기</button>
-      <button class="bdan" style="flex:1;margin-top:0;" onclick="G.confirmDel()">🗑️ 전체 삭제</button>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button onclick="G.openManualInput()" style="flex:1;min-width:120px;padding:12px;background:#fff;border:1.5px solid var(--blue);border-radius:var(--rmd);font-family:var(--font);font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;">✏️ 스코어 수동입력</button>
+      <button onclick="G.exportExcel()" style="flex:1;min-width:120px;padding:12px;background:#fff;border:1.5px solid #16a34a;border-radius:var(--rmd);font-family:var(--font);font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;">📊 엑셀 내보내기</button>
+      <button class="bdan" style="flex:1;min-width:120px;margin-top:0;" onclick="G.confirmDel()">🗑️ 전체 삭제</button>
+    </div>
+  </div>
+
+  <!-- 수동입력 모달 -->
+  <div class="mov" id="manual-modal" onclick="if(event.target===this)G.closeManualInput()">
+    <div class="msh">
+      <div class="mhd"></div>
+      <div class="mti">✏️ 스코어 수동입력</div>
+      <div class="fg"><label class="fl">골프장 이름</label><input type="text" class="fi" id="mi-course" placeholder="예) 한양CC"></div>
+      <div class="g2">
+        <div class="fg"><label class="fl">날짜</label><input type="date" class="fi" id="mi-date"></div>
+        <div class="fg"><label class="fl">시간</label><input type="time" class="fi" id="mi-time"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">동반자 이름 <span style="font-weight:400;color:var(--gr400);">(선택)</span></label>
+        <div class="g3" style="gap:6px;">
+          <input type="text" class="fi" id="mi-p2" placeholder="동반자 1" style="font-size:13px;">
+          <input type="text" class="fi" id="mi-p3" placeholder="동반자 2" style="font-size:13px;">
+          <input type="text" class="fi" id="mi-p4" placeholder="동반자 3" style="font-size:13px;">
+        </div>
+      </div>
+      <div class="g3" style="gap:8px;">
+        <div class="fg"><label class="fl">전반 타수</label><input type="number" class="fi" id="mi-front" placeholder="-" min="0" max="200" style="font-size:16px;text-align:center;"></div>
+        <div class="fg"><label class="fl">후반 타수</label><input type="number" class="fi" id="mi-back" placeholder="-" min="0" max="200" style="font-size:16px;text-align:center;"></div>
+        <div class="fg"><label class="fl">전체 타수</label><input type="number" class="fi" id="mi-total" placeholder="-" min="0" max="300" style="font-size:16px;text-align:center;"></div>
+      </div>
+      <div class="fg"><label class="fl">메모 <span style="font-weight:400;color:var(--gr400);">(선택)</span></label><input type="text" class="fi" id="mi-memo" placeholder="예) 날씨 맑음, 동풍..."></div>
+      <button class="bpri" onclick="G.saveManualInput()">저장</button>
+      <button class="bghost" onclick="G.closeManualInput()">취소</button>
     </div>
   </div>
 
@@ -395,6 +427,39 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
   </div>
 
   </div><!-- /tab-wrap -->
+
+  <!-- 기록 수정 모달 -->
+  <div class="mov" id="edit-modal" onclick="if(event.target===this)G.closeEditModal()">
+    <div class="msh">
+      <div class="mhd"></div>
+      <div class="mti">✏️ 기록 수정</div>
+      <input type="hidden" id="edit-id">
+      <div class="fg"><label class="fl">골프장 이름</label><input type="text" class="fi" id="edit-course"></div>
+      <div class="g2">
+        <div class="fg"><label class="fl">날짜</label><input type="date" class="fi" id="edit-date"></div>
+        <div class="fg"><label class="fl">시간</label><input type="time" class="fi" id="edit-time"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">동반자 <span style="font-weight:400;color:var(--gr400);">(선택)</span></label>
+        <div class="g3" style="gap:6px;">
+          <input type="text" class="fi" id="edit-p2" placeholder="동반자 1" style="font-size:13px;">
+          <input type="text" class="fi" id="edit-p3" placeholder="동반자 2" style="font-size:13px;">
+          <input type="text" class="fi" id="edit-p4" placeholder="동반자 3" style="font-size:13px;">
+        </div>
+      </div>
+      <!-- 수동입력 라운드면 타수 수정 가능 -->
+      <div id="edit-scores-wrap">
+        <div class="g3" style="gap:8px;">
+          <div class="fg"><label class="fl">전반</label><input type="number" class="fi" id="edit-front" placeholder="-" style="font-size:16px;text-align:center;"></div>
+          <div class="fg"><label class="fl">후반</label><input type="number" class="fi" id="edit-back" placeholder="-" style="font-size:16px;text-align:center;"></div>
+          <div class="fg"><label class="fl">전체</label><input type="number" class="fi" id="edit-total" placeholder="-" style="font-size:16px;text-align:center;"></div>
+        </div>
+        <div class="fg"><label class="fl">메모</label><input type="text" class="fi" id="edit-memo" placeholder="메모"></div>
+      </div>
+      <button class="bpri" onclick="G.saveEdit()">저장</button>
+      <button class="bghost" onclick="G.closeEditModal()">취소</button>
+    </div>
+  </div>
 
   <!-- 새 라운드 모달 -->
   <div class="mov" id="modal" onclick="if(event.target===this)G.closeModal()">
@@ -818,10 +883,145 @@ const G = (() => {
     h+='</tbody></table>'; document.getElementById('sc-sum').innerHTML=h;
   }
 
+  // 연도별/월별 요약 상태
+  const recState = { openYear: null, yearIdx: 0 };
+
+  function renderYearSummary(){
+    const all = [...S.saved];
+    if(!all.length){ document.getElementById('rec-year-summary').innerHTML=''; return; }
+
+    // 연도별 집계
+    const years = {};
+    all.forEach(r => {
+      const y = (r.date||'').slice(0,4); if(!y) return;
+      if(!years[y]) years[y] = { rounds:0, totalSum:0, totalCount:0, best:999 };
+      years[y].rounds++;
+      const tot = r.manual ? r.manualTotal : (calcStats(r,0).done>0?calcStats(r,0).total:null);
+      if(tot){ years[y].totalSum+=tot; years[y].totalCount++; if(tot<years[y].best)years[y].best=tot; }
+    });
+    const sortedYears = Object.keys(years).sort((a,b)=>b-a);
+    if(recState.yearIdx >= sortedYears.length) recState.yearIdx=0;
+
+    // 스와이프 카드
+    let cards = sortedYears.map((y,idx)=>{
+      const v = years[y];
+      const avg = v.totalCount>0?(v.totalSum/v.totalCount).toFixed(1):'-';
+      const best = v.best<999?v.best+'타':'-';
+
+      // 월별
+      const months = {};
+      all.filter(r=>(r.date||'').startsWith(y)).forEach(r=>{
+        const m=(r.date||'').slice(5,7); if(!m) return;
+        if(!months[m]) months[m]={rounds:0,sum:0,cnt:0,best:999};
+        months[m].rounds++;
+        const tot=r.manual?r.manualTotal:(calcStats(r,0).done>0?calcStats(r,0).total:null);
+        if(tot){months[m].sum+=tot;months[m].cnt++;if(tot<months[m].best)months[m].best=tot;}
+      });
+      const mRows = Object.keys(months).sort((a,b)=>b-a).map(m=>{
+        const mv=months[m];
+        const mavg=mv.cnt>0?(mv.sum/mv.cnt).toFixed(1):'-';
+        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--gr100);">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;font-weight:700;">${parseInt(m)}월</span>
+            <span style="font-size:10px;color:var(--gr600);">${mv.rounds}회</span>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <span style="font-size:11px;color:var(--gr600);">평균 <b style="color:var(--text);">${mavg}타</b></span>
+            ${mv.best<999?`<span style="font-size:11px;color:var(--gr600);">베스트 <b style="color:var(--g6);">${mv.best}타</b></span>`:''}
+          </div>
+        </div>`;
+      }).join('');
+
+      return`<div class="year-card" data-idx="${idx}" style="min-width:100%;padding:10px 12px;">
+        <!-- 연도 요약 헤더 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--g8);">${y}년</span>
+            <span style="font-size:11px;color:var(--gr600);">${v.rounds}라운드</span>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--gr600);">평균</div><div style="font-size:15px;font-weight:700;color:var(--text);">${avg}타</div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--gr600);">베스트</div><div style="font-size:15px;font-weight:700;color:var(--g6);">${best}</div></div>
+          </div>
+        </div>
+        <!-- 월별 -->
+        <div style="font-size:10px;font-weight:700;color:var(--gr600);margin-bottom:4px;">월별 현황</div>
+        ${mRows||'<div style="color:var(--gr400);font-size:11px;">데이터 없음</div>'}
+      </div>`;
+    }).join('');
+
+    const dots = sortedYears.map((_,idx)=>
+      `<div style="width:6px;height:6px;border-radius:50%;background:${idx===recState.yearIdx?'var(--g6)':'var(--gr200)'};transition:background .2s;"></div>`
+    ).join('');
+
+    document.getElementById('rec-year-summary').innerHTML=`
+      <div class="c" style="padding:0;overflow:hidden;margin-bottom:6px;">
+        <!-- 스와이프 컨테이너 -->
+        <div id="year-slider-wrap" style="overflow:hidden;position:relative;">
+          <div id="year-slider" style="display:flex;transition:transform .3s ease;transform:translateX(-${recState.yearIdx*100}%);">
+            ${cards}
+          </div>
+        </div>
+        <!-- 도트 + 화살표 -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 12px;border-top:1px solid var(--gr100);">
+          <button onclick="G.yearSwipe(1)" style="background:none;border:none;font-size:16px;color:var(--gr400);cursor:pointer;padding:2px 6px;">‹</button>
+          <div style="display:flex;gap:5px;align-items:center;">${dots}</div>
+          <button onclick="G.yearSwipe(-1)" style="background:none;border:none;font-size:16px;color:var(--gr400);cursor:pointer;padding:2px 6px;">›</button>
+        </div>
+      </div>`;
+
+    // 터치 스와이프
+    const slider = document.getElementById('year-slider-wrap');
+    let tx=0;
+    slider.ontouchstart=e=>{tx=e.touches[0].clientX;};
+    slider.ontouchend=e=>{
+      const dx=e.changedTouches[0].clientX-tx;
+      if(Math.abs(dx)>40) G.yearSwipe(dx<0?-1:1);
+    };
+  }
+
+  function yearSwipe(dir){
+    const all=[...S.saved];
+    const years=[...new Set(all.map(r=>(r.date||'').slice(0,4)).filter(y=>y))];
+    const cnt=years.length;
+    recState.yearIdx=Math.max(0,Math.min(cnt-1,recState.yearIdx+dir));
+    renderRec(); // 기록 목록도 함께 업데이트
+  }
+
+  function toggleYear(y){
+    recState.openYear = recState.openYear===y ? null : y;
+    renderYearSummary();
+  }
+
   function renderRec(){
+    renderYearSummary();
     const all=[...S.saved];
     if(!all.length){document.getElementById('rec-list').innerHTML='<div class="empty"><div class="ei">📖</div><div class="et">저장된 라운드가 없습니다</div><div class="es">저장 버튼을 눌러주세요</div></div>';return;}
-    document.getElementById('rec-list').innerHTML=all.map(r=>{
+
+    // 현재 선택된 연도 파악
+    const years=[...new Set(all.map(r=>(r.date||'').slice(0,4)).filter(y=>y))].sort((a,b)=>b-a);
+    const curYear = years[recState.yearIdx] || null;
+    // 해당 연도 기록만 필터 (연도 없는 기록은 항상 표시)
+    const filtered = curYear ? all.filter(r=>!r.date||(r.date||'').startsWith(curYear)) : all;
+    if(!filtered.length){document.getElementById('rec-list').innerHTML=`<div class="empty"><div class="ei">📅</div><div class="et">${curYear}년 기록이 없습니다</div></div>`;return;}
+    document.getElementById('rec-list').innerHTML=filtered.map(r=>{
+      // ── 수동입력 라운드 ──
+      if(r.manual){
+        const companions=r.players.slice(1).filter(p=>p&&p.trim());
+        const compStr=companions.length>0?` <span style="display:inline-flex;align-items:center;background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;vertical-align:middle;">🏌️ ${companions.join(' · ')}</span>`:'';
+        const tot=r.manualTotal;
+        return`<div class="rc" style="position:relative;border-left:3px solid var(--blue);">
+          <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;"><button onclick="event.stopPropagation();G.openEditModal(${r.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--gr400);padding:2px 4px;border-radius:4px;line-height:1;" title="수정">✏️</button><button onclick="event.stopPropagation();G.deleteRound(${r.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--gr400);padding:2px 4px;border-radius:4px;line-height:1;" title="삭제">🗑️</button></div>
+          <div class="rchd" style="padding-right:60px;"><div><div class="rcc">${r.course}${compStr}</div><div class="rcd">${fd(r.date)}${r.time?' '+r.time:''}</div></div><div class="rcb rbe">${tot?tot+'타':'-'}<br><span style="font-size:9px;color:var(--blue);">수동입력</span></div></div>
+          <div class="rtags">
+            ${r.manualFront?`<span class="rtag">전반 ${r.manualFront}타</span>`:''}
+            ${r.manualBack?`<span class="rtag">후반 ${r.manualBack}타</span>`:''}
+            ${r.memo?`<span class="rtag" style="color:var(--gr600);">📝 ${r.memo}</span>`:''}
+            <span class="rtag rtag-c">수동</span>
+          </div>
+        </div>`;
+      }
+      // ── 일반 라운드 ──
       const st=calcStats(r,0); const pm=st.pm; const sc=pm===null||pm===0?'rbe':pm<0?'rbu':'rbo';
       const isCur=S.round&&r.id===S.round.id;
       const cur=isCur?' cur':'';
@@ -831,8 +1031,8 @@ const G = (() => {
       const companions=r.players.slice(1).filter(p=>p&&p.trim());
       const compStr=companions.length>0?` <span style="display:inline-flex;align-items:center;background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;vertical-align:middle;">🏌️ ${companions.join(' · ')}</span>`:'';
       return`<div class="rc${cur}" onclick="G.loadRound(${r.id})" style="position:relative;">
-        <button onclick="event.stopPropagation();G.deleteRound(${r.id})" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:15px;color:var(--gr400);padding:2px 4px;border-radius:4px;line-height:1;" title="삭제">🗑️</button>
-        <div class="rchd" style="padding-right:28px;"><div><div class="rcc">${r.course}${compStr}</div><div class="rcd">${fd(r.date)}${r.time?' '+r.time:''}</div></div><div class="rcb ${sc}">${st.done>0?st.total+'타':'-'}<br><span style="font-size:10px;">${fpm(pm)}</span></div></div>
+        <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;"><button onclick="event.stopPropagation();G.openEditModal(${r.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--gr400);padding:2px 4px;border-radius:4px;line-height:1;" title="수정">✏️</button><button onclick="event.stopPropagation();G.deleteRound(${r.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--gr400);padding:2px 4px;border-radius:4px;line-height:1;" title="삭제">🗑️</button></div>
+        <div class="rchd" style="padding-right:60px;"><div><div class="rcc">${r.course}${compStr}</div><div class="rcd">${fd(r.date)}${r.time?' '+r.time:''}</div></div><div class="rcb ${sc}">${st.done>0?st.total+'타':'-'}<br><span style="font-size:10px;">${fpm(pm)}</span></div></div>
         <div class="rtags"><span class="rtag${pm&&pm!==0?' rtag-h':''}">${fpm(pm)} (${fpml(pm)})</span><span class="rtag">퍼팅 ${st.done>0?(st.putts/st.done).toFixed(1):'-'}</span><span class="rtag">GIR ${st.done>0?Math.round(st.gir/st.done*100):0}%</span>${statusTag}</div>
       </div>`;
     }).join('');
@@ -886,13 +1086,21 @@ const G = (() => {
     // 동반자별 함께한 게임 목록 수집 (시간순 최신)
     const compGames = {};
     S.saved.forEach(rnd => {
-      const st0 = calcStats(rnd, 0);
-      if(st0.pm === null) return;
+      // 일반 라운드: calcStats로 pm 계산
+      // 수동입력 라운드: manualTotal과 파 합계로 pm 계산 (파 합계 72 기준)
+      let pm = null;
+      if(rnd.manual){
+        if(rnd.manualTotal) pm = rnd.manualTotal - 72; // 18홀 기준 파72
+      } else {
+        const st0 = calcStats(rnd, 0);
+        pm = st0.pm;
+      }
+      if(pm === null) return;
       rnd.players.slice(1).forEach(name => {
         if(!name || !name.trim()) return;
         const key = name.trim();
         if(!compGames[key]) compGames[key] = [];
-        compGames[key].push({ pm: st0.pm, date: rnd.date });
+        compGames[key].push({ pm, date: rnd.date });
       });
     });
     // 동반자별 최근 5경기만 사용해 평균 계산
@@ -944,6 +1152,123 @@ const G = (() => {
   document.getElementById('fi-t').value=`${('0'+now.getHours()).slice(-2)}:${('0'+now.getMinutes()).slice(-2)}`;
   if(S.round){ renderInput(); }
   else{ document.getElementById('rs-course').textContent='새 라운드를 시작해주세요'; document.getElementById('rs-date').textContent='우측 상단 버튼을 눌러주세요'; }
+
+  function openEditModal(id){
+    const r=S.saved.find(r=>r.id===id); if(!r) return;
+    document.getElementById('edit-id').value=id;
+    document.getElementById('edit-course').value=r.course||'';
+    document.getElementById('edit-date').value=r.date||'';
+    document.getElementById('edit-time').value=r.time||'';
+    const comps=r.players.slice(1);
+    ['edit-p2','edit-p3','edit-p4'].forEach((eid,i)=>document.getElementById(eid).value=comps[i]||'');
+    // 수동입력이든 일반이든 타수 수정 가능
+    const wrap=document.getElementById('edit-scores-wrap');
+    if(r.manual){
+      wrap.style.display='block';
+      document.getElementById('edit-front').value=r.manualFront||'';
+      document.getElementById('edit-back').value=r.manualBack||'';
+      document.getElementById('edit-total').value=r.manualTotal||'';
+      document.getElementById('edit-memo').value=r.memo||'';
+    } else {
+      wrap.style.display='none'; // 일반 라운드는 타수 수정 불가 (홀별 입력)
+    }
+    // 전반+후반 자동계산
+    ['edit-front','edit-back'].forEach(eid=>{
+      document.getElementById(eid).oninput=()=>{
+        const f=parseInt(document.getElementById('edit-front').value)||0;
+        const b=parseInt(document.getElementById('edit-back').value)||0;
+        if(f||b) document.getElementById('edit-total').value=f+b;
+      };
+    });
+    document.getElementById('edit-modal').classList.add('show');
+  }
+
+  function closeEditModal(){
+    document.getElementById('edit-modal').classList.remove('show');
+  }
+
+  function saveEdit(){
+    const id=parseInt(document.getElementById('edit-id').value);
+    const idx=S.saved.findIndex(r=>r.id===id); if(idx<0) return;
+    const r=S.saved[idx];
+    const myName=r.players[0]||localStorage.getItem('golf_p1_name')||'나';
+    const companions=['edit-p2','edit-p3','edit-p4'].map(eid=>document.getElementById(eid).value.trim()).filter(p=>p);
+    r.course=document.getElementById('edit-course').value.trim()||r.course;
+    r.date=document.getElementById('edit-date').value||r.date;
+    r.time=document.getElementById('edit-time').value||r.time;
+    r.players=[myName,...companions];
+    if(r.manual){
+      r.manualFront=parseInt(document.getElementById('edit-front').value)||null;
+      r.manualBack=parseInt(document.getElementById('edit-back').value)||null;
+      const tot=parseInt(document.getElementById('edit-total').value)||null;
+      r.manualTotal=tot||(r.manualFront||0)+(r.manualBack||0)||null;
+      r.memo=document.getElementById('edit-memo').value.trim();
+    }
+    S.saved[idx]=r;
+    persist(); closeEditModal(); renderRec(); toast('수정되었습니다 ✓');
+  }
+
+  function openManualInput(){
+    const now=new Date();
+    document.getElementById('mi-date').value=td();
+    document.getElementById('mi-time').value=`${('0'+now.getHours()).slice(-2)}:${('0'+now.getMinutes()).slice(-2)}`;
+    document.getElementById('mi-course').value='';
+    document.getElementById('mi-front').value='';
+    document.getElementById('mi-back').value='';
+    document.getElementById('mi-total').value='';
+    document.getElementById('mi-memo').value='';
+    ['mi-p2','mi-p3','mi-p4'].forEach(id=>document.getElementById(id).value='');
+    // 전반+후반 입력 시 전체 자동계산
+    ['mi-front','mi-back'].forEach(id=>{
+      document.getElementById(id).oninput=()=>{
+        const f=parseInt(document.getElementById('mi-front').value)||0;
+        const b=parseInt(document.getElementById('mi-back').value)||0;
+        if(f||b) document.getElementById('mi-total').value=f+b;
+      };
+    });
+    document.getElementById('manual-modal').classList.add('show');
+  }
+
+  function closeManualInput(){
+    document.getElementById('manual-modal').classList.remove('show');
+  }
+
+  function saveManualInput(){
+    const course=document.getElementById('mi-course').value.trim();
+    const date=document.getElementById('mi-date').value;
+    const time=document.getElementById('mi-time').value;
+    const front=parseInt(document.getElementById('mi-front').value)||null;
+    const back=parseInt(document.getElementById('mi-back').value)||null;
+    const totalInput=parseInt(document.getElementById('mi-total').value)||null;
+    // 전체타수: 직접 입력 우선, 없으면 전반+후반 합산
+    const total=totalInput!==null?totalInput:(front!==null||back!==null?(front||0)+(back||0):null);
+    const memo=document.getElementById('mi-memo').value.trim();
+    const companions=['mi-p2','mi-p3','mi-p4'].map(id=>document.getElementById(id).value.trim()).filter(p=>p);
+    const myName=localStorage.getItem('golf_p1_name')||'나';
+    const players=[myName,...companions];
+
+    // 수동입력 라운드 객체 생성 (홀별 데이터 없음)
+    const r={
+      id:Date.now(),
+      course:course||'이름없음',
+      date:date||td(),
+      time:time||'',
+      players,
+      memo,
+      manual:true, // 수동입력 표시
+      manualFront:front,
+      manualBack:back,
+      manualTotal:total,
+      holes:[], // 홀 데이터 없음
+      createdAt:new Date().toISOString()
+    };
+
+    S.saved.unshift(r);
+    persist();
+    closeManualInput();
+    renderRec();
+    toast('수동 스코어가 저장되었습니다 ✓');
+  }
 
   function exportExcel(){
     if(!S.saved.length){ toast('저장된 기록이 없습니다'); return; }
@@ -1016,7 +1341,7 @@ const G = (() => {
     setTimeout(()=>window.print(), 300);
   }
 
-  return{tab,openModal,closeModal,startRound,save,setPar,setTee,adj,setPuttDir,nextHole,prevHole,jump,switchP,confirmDel,loadRound,resetToPar,resetField,closeCfm,deleteRound,printSC,exportExcel};
+  return{tab,openModal,closeModal,startRound,save,setPar,setTee,adj,setPuttDir,nextHole,prevHole,jump,switchP,confirmDel,loadRound,resetToPar,resetField,closeCfm,deleteRound,printSC,exportExcel,openManualInput,closeManualInput,saveManualInput,toggleYear,yearSwipe,openEditModal,closeEditModal,saveEdit};
 })();
 
 // 서비스워커 등록 (오프라인 지원)
