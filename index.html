@@ -351,17 +351,14 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
 
   <!-- 기록 탭 -->
   <div class="tc" id="c-records">
-    <!-- 연도별/월별 요약 -->
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button onclick="G.openManualInput()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid var(--blue);border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;">✏️ 수동입력</button>
+      <button onclick="G.exportExcel()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid #16a34a;border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:#16a34a;cursor:pointer;">📊 엑셀로</button>
+      <button onclick="G.confirmDel()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid var(--red);border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;">🗑️ 전체삭제</button>
+    </div>
     <div id="rec-year-summary" style="margin-bottom:6px;"></div>
     <div id="rec-list"></div>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-      <button onclick="G.openManualInput()" style="flex:1;min-width:120px;padding:12px;background:#fff;border:1.5px solid var(--blue);border-radius:var(--rmd);font-family:var(--font);font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;line-height:1.4;">✏️ 스코어<br>수동입력</button>
-      <button onclick="G.exportExcel()" style="flex:1;min-width:120px;padding:12px;background:#fff;border:1.5px solid #16a34a;border-radius:var(--rmd);font-family:var(--font);font-size:13px;font-weight:600;color:#16a34a;cursor:pointer;">📊 엑셀 내보내기</button>
-      <button class="bdan" style="flex:1;min-width:120px;margin-top:0;" onclick="G.confirmDel()">🗑️ 전체 삭제</button>
-    </div>
   </div>
-
-  <!-- 수동입력 모달 -->
   <div class="mov" id="manual-modal" onclick="if(event.target===this)G.closeManualInput()">
     <div class="msh">
       <div class="mhd"></div>
@@ -1002,7 +999,8 @@ const G = (() => {
     const years=[...new Set(all.map(r=>(r.date||'').slice(0,4)).filter(y=>y))].sort((a,b)=>b-a);
     const curYear = years[recState.yearIdx] || null;
     // 해당 연도 기록만 필터 (연도 없는 기록은 항상 표시)
-    const filtered = curYear ? all.filter(r=>!r.date||(r.date||'').startsWith(curYear)) : all;
+    const filtered = (curYear ? all.filter(r=>!r.date||(r.date||'').startsWith(curYear)) : all)
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if(!filtered.length){document.getElementById('rec-list').innerHTML=`<div class="empty"><div class="ei">📅</div><div class="et">${curYear}년 기록이 없습니다</div></div>`;return;}
     document.getElementById('rec-list').innerHTML=filtered.map(r=>{
       // ── 수동입력 라운드 ──
@@ -1052,7 +1050,16 @@ const G = (() => {
     });
   }
 
-  function confirmDel(){ openCfm('전체 기록 삭제','저장된 모든 라운드 기록이 삭제됩니다.\n되돌릴 수 없습니다.',()=>{S.saved=[];persist();renderRec();toast('삭제되었습니다');closeCfm();}); }
+  function confirmDel(){
+    openCfm('전체 기록 삭제 ⚠️', '모든 라운드 기록이 영구 삭제됩니다.\n정말 삭제하시겠습니까?', ()=>{
+      closeCfm();
+      setTimeout(()=>{
+        openCfm('⚠️ 최종 확인', '되돌릴 수 없습니다.\n한 번 더 확인해 주세요.', ()=>{
+          S.saved=[]; persist(); renderRec(); toast('삭제되었습니다'); closeCfm();
+        });
+      }, 200);
+    });
+  }
 
   function renderAn(){
     const all=[...S.saved]; if(S.round&&!all.find(r=>r.id===S.round.id)) all.unshift(S.round);
