@@ -225,7 +225,7 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
 <body>
 <div id="ga">
   <header class="hdr">
-    <div class="logo">⛳ My Golf</div>
+    <div class="logo">⛳ My Golf <span id="sync-dot" title="Google Sheets 동기화 상태" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:4px;vertical-align:middle;"></span></div>
     <div class="hbtns">
       <button class="hbtn" onclick="G.openModal()">+ 새 라운드</button>
       <button class="hbtn hbtn-s" onclick="G.save()">저장</button>
@@ -497,9 +497,52 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
 const G = (() => {
   const S = { round:null, saved:[], hole:0, player:0 };
 
-  // localStorage
-  const persist = () => { try{ localStorage.setItem('golf_v5', JSON.stringify({round:S.round,saved:S.saved})); }catch(e){} };
-  const hydrate = () => { try{ const d=JSON.parse(localStorage.getItem('golf_v5')||'null'); if(d){S.round=d.round||null;S.saved=d.saved||[];} }catch(e){} };
+  // ── Google Sheets 연동 ──
+  const GS_URL = 'https://script.google.com/macros/s/AKfycbyPmxQ_ubJuWiZ0QJHbwA1_tacD-nxGT5xc-mpv5yVl9B5-VhaW4kErPjVo1xHb3ntnUQ/exec';
+  let gsSyncTimer = null;
+
+  // localStorage 저장 (빠른 로컬 캐시)
+  const persistLocal = () => { try{ localStorage.setItem('golf_v5', JSON.stringify({round:S.round,saved:S.saved})); }catch(e){} };
+
+  // Google Sheets 저장 (디바운스 2초)
+  const persistGS = () => {
+    clearTimeout(gsSyncTimer);
+    gsSyncTimer = setTimeout(async () => {
+      try {
+        const body = JSON.stringify({ action:'save', saved: S.saved });
+        await fetch(GS_URL, {
+          method:'POST', body,
+          headers:{'Content-Type':'text/plain'} // CORS 우회
+        });
+        document.getElementById('sync-dot').style.background='#16a34a'; // 초록 = 동기화됨
+      } catch(e) {
+        document.getElementById('sync-dot').style.background='#dc2626'; // 빨강 = 실패
+      }
+    }, 2000);
+    document.getElementById('sync-dot').style.background='#f59e0b'; // 노랑 = 저장중
+  };
+
+  // 통합 저장
+  const persist = () => { persistLocal(); persistGS(); };
+
+  // 불러오기: 먼저 로컬, 그다음 GS에서 최신 데이터
+  const hydrate = async () => {
+    // 1. 로컬 데이터 먼저 (빠른 렌더)
+    try{ const d=JSON.parse(localStorage.getItem('golf_v5')||'null'); if(d){S.round=d.round||null;S.saved=d.saved||[];} }catch(e){}
+    // 2. GS에서 불러오기
+    try {
+      document.getElementById('sync-dot').style.background='#f59e0b';
+      const res = await fetch(GS_URL);
+      const data = await res.json();
+      if(data.ok && data.saved && data.saved.length >= S.saved.length){
+        S.saved = data.saved;
+        persistLocal(); // 로컬 캐시 업데이트
+      }
+      document.getElementById('sync-dot').style.background='#16a34a';
+    } catch(e) {
+      document.getElementById('sync-dot').style.background='#dc2626';
+    }
+  };
 
   const td = () => { const d=new Date(); return`${d.getFullYear()}-${('0'+(d.getMonth()+1)).slice(-2)}-${('0'+d.getDate()).slice(-2)}`; };
   const fd = s => s ? s.replace(/-/g,'.') : '';
@@ -1148,8 +1191,7 @@ const G = (() => {
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2800);}
 
   // 초기화
-  hydrate();
-  // 초기 탭 강제 표시 (CSS 문제 방지)
+  // 초기 탭 강제 표시
   ['input','scorecard','records','analysis'].forEach(t=>{
     const el=document.getElementById('c-'+t);
     el.style.display=(t==='input')?'block':'none';
@@ -1157,8 +1199,14 @@ const G = (() => {
   const now=new Date();
   document.getElementById('fi-d').value=td();
   document.getElementById('fi-t').value=`${('0'+now.getHours()).slice(-2)}:${('0'+now.getMinutes()).slice(-2)}`;
-  if(S.round){ renderInput(); }
-  else{ document.getElementById('rs-course').textContent='새 라운드를 시작해주세요'; document.getElementById('rs-date').textContent='우측 상단 버튼을 눌러주세요'; }
+
+  // hydrate 후 화면 업데이트
+  hydrate().then(()=>{
+    if(S.round){ renderInput(); }
+    else{ document.getElementById('rs-course').textContent='새 라운드를 시작해주세요'; document.getElementById('rs-date').textContent='우측 상단 버튼을 눌러주세요'; }
+    // 기록 탭이 열려있으면 재렌더
+    if(document.getElementById('c-records').style.display==='block') renderRec();
+  });
 
   function openEditModal(id){
     const r=S.saved.find(r=>r.id===id); if(!r) return;
