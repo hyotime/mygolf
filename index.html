@@ -437,7 +437,7 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
       <div style="margin-top:5px;">
         <div class="sl" style="margin-bottom:2px;">최근 10경기 추이</div>
         <div id="an-trend"></div>
-        <div id="an-trend-delta" class="sbs" style="text-align:right;margin-top:2px;"></div>
+        <div id="an-trend-delta" class="sbs" style="text-align:right;margin-top:2px;font-size:9px;"></div>
       </div>
     </div>
     <!-- ② 전반/후반 9홀 -->
@@ -1299,14 +1299,15 @@ const G = (() => {
       const l10=rsum.slice(0,10).reverse();
       const mn=Math.min(...l10.map(x=>x.total)), mx=Math.max(...l10.map(x=>x.total));
       const barH=v=> mx===mn?26: 8+Math.round((v-mn)/(mx-mn)*34);
-      $('an-trend').innerHTML='<div style="display:flex;align-items:flex-end;gap:3px;height:60px;">'
+      $('an-trend').innerHTML='<div style="display:flex;align-items:flex-end;gap:3px;height:58px;">'
         + l10.map((x,i)=>{
             const last=i===l10.length-1;
             const col=x.total<=avg?'#4caf7d':(x.total>=avg+4?'#e08a5a':'#d9b26a');
+            const showDate=(i===0||last);
             return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:1px;">`
               + `<div style="font-size:8px;font-weight:${last?'800':'700'};color:${last?'var(--g8)':'var(--gr600)'};line-height:1;">${x.total}</div>`
               + `<div style="width:100%;height:${barH(x.total)}px;background:${col};border-radius:2px 2px 0 0;"></div>`
-              + `<div style="font-size:6.5px;color:var(--gr400);line-height:1;white-space:nowrap;">${fdShort(x.date)}</div>`
+              + `<div style="font-size:7px;color:var(--gr400);line-height:1;white-space:nowrap;">${showDate?fdShort(x.date):'&nbsp;'}</div>`
               + `</div>`;
           }).join('')
         + '</div>';
