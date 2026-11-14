@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="My Golf">
 <meta name="theme-color" content="#1a5c38">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>⛳ My Golf Scorecard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
@@ -49,6 +50,13 @@ body{font-family:var(--font);color:var(--text);}
 .hbtns{display:flex;gap:6px;}
 .hbtn{padding:8px 14px;border-radius:var(--rfull);border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
 .hbtn-s{background:#fff;border-color:#fff;color:var(--g8);font-weight:700;}
+/* 동기화 상태 점 (탭하면 동기화 설정) */
+.syncdot{position:relative;width:20px;height:20px;padding:0;border:none;background:none;margin-left:2px;vertical-align:middle;cursor:pointer;}
+.syncdot::after{content:'';position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 2px rgba(255,255,255,.18);transition:background .3s;}
+.syncdot[data-st="ok"]::after{background:#22c55e;}
+.syncdot[data-st="err"]::after{background:#ef4444;}
+.syncdot[data-st="wait"]::after{background:#f59e0b;}
+.syncdot[data-st="off"]::after{background:#9ca3af;}
 /* 탭 네비 */
 .tabs{background:#fff;display:flex;border-bottom:2px solid var(--gr200);flex-shrink:0;z-index:199;box-shadow:var(--sh);}
 .tbtn{flex:1;padding:13px 3px;background:none;border:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--gr600);cursor:pointer;position:relative;}
@@ -225,7 +233,7 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
 <body>
 <div id="ga">
   <header class="hdr">
-    <div class="logo">⛳ My Golf <span id="sync-dot" title="Google Sheets 동기화 상태" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:4px;vertical-align:middle;"></span></div>
+    <div class="logo">⛳ My Golf <button class="syncdot" id="sync-dot" data-st="off" title="동기화 설정" aria-label="동기화 설정" onclick="G.openSyncSettings()"></button></div>
     <div class="hbtns">
       <button class="hbtn" onclick="G.openModal()">+ 새 라운드</button>
       <button class="hbtn hbtn-s" onclick="G.save()">저장</button>
@@ -235,7 +243,7 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
     <button class="tbtn on" id="t-input"     onclick="G.tab('input')">입력</button>
     <button class="tbtn"    id="t-scorecard" onclick="G.tab('scorecard')">스코어카드</button>
     <button class="tbtn"    id="t-records"   onclick="G.tab('records')">기록</button>
-    <button class="tbtn"    id="t-analysis"  onclick="G.tab('analysis')">최근10경기</button>
+    <button class="tbtn"    id="t-analysis"  onclick="G.tab('analysis')">분석</button>
   </nav>
 
   <!-- 탭 콘텐츠 래퍼 -->
@@ -355,6 +363,7 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
       <button onclick="G.openManualInput()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid var(--blue);border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;">✏️ 수동입력</button>
       <button onclick="G.exportExcel()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid #16a34a;border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:#16a34a;cursor:pointer;">📊 엑셀로</button>
       <button onclick="G.confirmDel()" style="flex:1;padding:8px 4px;background:#fff;border:1.5px solid var(--red);border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;">🗑️ 전체삭제</button>
+      <button onclick="G.openSyncSettings()" title="동기화 설정" style="padding:8px 10px;background:#fff;border:1.5px solid var(--gr200);border-radius:var(--rmd);font-family:var(--font);font-size:12px;font-weight:600;color:var(--gr600);cursor:pointer;">⚙️</button>
     </div>
     <div id="rec-year-summary" style="margin-bottom:6px;"></div>
     <div id="rec-list"></div>
@@ -387,10 +396,64 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
     </div>
   </div>
 
+  <!-- 동기화 설정 모달 -->
+  <div class="mov" id="sync-modal" onclick="if(event.target===this)G.closeSyncSettings()">
+    <div class="msh">
+      <div class="mhd"></div>
+      <div class="mti">🔄 구글 시트 동기화</div>
+      <div style="font-size:12px;color:var(--gr600);line-height:1.65;margin-bottom:14px;">
+        기록은 항상 <b>이 기기에 먼저</b> 저장됩니다. 여러 기기에서 같은 기록을 쓰거나 백업하려면,
+        구글 Apps Script <b>웹 앱 주소</b>를 붙여넣어 주세요. 주소와 키는 이 기기에만 저장되고
+        공개 저장소에는 올라가지 않습니다.
+      </div>
+      <div class="fg">
+        <label class="fl">웹 앱 주소</label>
+        <input type="url" class="fi" id="sy-url" placeholder="https://script.google.com/macros/s/…/exec"
+               autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" style="font-size:13px;">
+      </div>
+      <div class="fg">
+        <label class="fl">키 <span style="font-weight:400;color:var(--gr400);">(스크립트에 키를 넣은 경우만)</span></label>
+        <input type="text" class="fi" id="sy-key" placeholder="선택"
+               autocomplete="off" autocapitalize="off" spellcheck="false" style="font-size:13px;">
+      </div>
+      <div id="sy-msg" class="sbs" style="margin:0 0 10px;line-height:1.6;font-size:10px;"></div>
+      <button class="bpri" onclick="G.saveSyncSettings()">저장하고 연결 확인</button>
+      <button class="bghost" onclick="G.clearSyncSettings()">이 기기에서 동기화 끄기</button>
+      <button class="bghost" onclick="G.closeSyncSettings()">닫기</button>
+    </div>
+  </div>
+
   <!-- 분석 탭 (동반자 분석 추가로 스크롤 허용) -->
   <div class="tc" id="c-analysis">
+    <!-- ① 라운드 요약: 총타수만 입력한 라운드(수동입력)까지 포함 -->
     <div class="c" style="padding:6px 10px;margin-bottom:4px;">
-      <div class="at" style="margin-bottom:3px;">📊 스코어 분석 <span style="font-weight:400;font-size:9px;opacity:.7;">(최근 10경기)</span></div>
+      <div class="at" style="margin-bottom:3px;">📈 라운드 요약 <span id="an-sum-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
+      <div class="g2" style="gap:4px;">
+        <div class="sbox" style="padding:5px;"><div class="sbl">평균 타수</div><div class="sbv" id="an-avg-total">-타</div></div>
+        <div class="sbox" style="padding:5px;"><div class="sbl">파72 대비</div><div class="sbv" id="an-avg-pm">-</div></div>
+        <div class="sbox" style="padding:5px;"><div class="sbl">베스트</div><div class="sbv" id="an-best">-</div><div class="sbs" id="an-best-d"></div></div>
+        <div class="sbox" style="padding:5px;"><div class="sbl">워스트</div><div class="sbv" id="an-worst">-</div><div class="sbs" id="an-worst-d"></div></div>
+      </div>
+      <div style="margin-top:5px;">
+        <div class="sl" style="margin-bottom:2px;">최근 10경기 추이</div>
+        <div id="an-trend"></div>
+        <div id="an-trend-delta" class="sbs" style="text-align:right;margin-top:2px;"></div>
+      </div>
+    </div>
+    <!-- ② 전반/후반 9홀 -->
+    <div class="c" style="padding:6px 10px;margin-bottom:4px;">
+      <div class="at" style="margin-bottom:3px;">↔️ 전반·후반 9홀 <span id="an-fb-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
+      <div class="g3" style="gap:4px;">
+        <div class="sbox" style="padding:5px;"><div class="sbl">전반 평균</div><div class="sbv" id="an-front">-</div></div>
+        <div class="sbox" style="padding:5px;"><div class="sbl">후반 평균</div><div class="sbv" id="an-back">-</div></div>
+        <div class="sbox" style="padding:5px;"><div class="sbl">전·후반 차</div><div class="sbv" id="an-fb-diff">-</div></div>
+      </div>
+      <div id="an-fb-note" class="sbs" style="text-align:center;margin-top:2px;"></div>
+    </div>
+    <!-- ③ 이하: 홀바이홀 데이터가 있는 최근 라운드 기준 -->
+    <div id="an-hole-cards">
+    <div class="c" style="padding:6px 10px;margin-bottom:4px;">
+      <div class="at" style="margin-bottom:3px;">📊 스코어 분석 <span class="anh-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
       <div class="g2" style="gap:4px;">
         <div class="sbox" style="padding:5px;"><div class="sbl">홀당 평균</div><div class="sbv" id="an-avg">-타</div></div>
         <div class="sbox" style="padding:5px;"><div class="sbl">게임당 페널티</div><div class="sbv" id="an-pen">0타</div></div>
@@ -398,20 +461,25 @@ table.sct .totc{background:var(--g1);font-weight:700;color:var(--g8);}
       <div style="margin-top:4px;"><div class="sl">스코어 분포</div><div class="dr" id="an-dist"></div></div>
     </div>
     <div class="c" style="padding:6px 10px;margin-bottom:4px;">
-      <div class="at" style="margin-bottom:3px;">⛳ 파별 평균 · GIR <span style="font-weight:400;font-size:9px;opacity:.7;">(최근 10경기)</span></div>
+      <div class="at" style="margin-bottom:3px;">⛳ 파별 평균 · GIR <span class="anh-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
       <div class="g3" style="gap:4px;" id="an-par"></div>
     </div>
     <div class="c" style="padding:6px 10px;margin-bottom:4px;">
-      <div class="at" style="margin-bottom:3px;">🏌️ 필드샷 분석 <span style="font-weight:400;font-size:9px;opacity:.7;">(최근 10경기)</span></div>
+      <div class="at" style="margin-bottom:3px;">🏌️ 필드샷 분석 <span class="anh-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
       <div id="an-fw"></div>
     </div>
     <div class="c" style="padding:6px 10px;margin-bottom:4px;">
-      <div class="at" style="margin-bottom:3px;">🎯 퍼팅 분석 <span style="font-weight:400;font-size:9px;opacity:.7;">(최근 10경기)</span></div>
+      <div class="at" style="margin-bottom:3px;">🎯 퍼팅 분석 <span class="anh-scope" style="font-weight:400;font-size:9px;opacity:.7;"></span></div>
       <div class="g2" style="gap:4px;margin-bottom:4px;">
         <div class="sbox" style="padding:5px;"><div class="sbl">홀당 평균 퍼팅</div><div class="sbv" id="an-pavg">-개</div></div>
         <div class="sbox" style="padding:5px;"><div class="sbl">3퍼팅 이상</div><div class="sbv" id="an-3p">0%</div></div>
       </div>
       <div class="sl">마지막 퍼팅 방향</div><div id="an-pdir"></div>
+    </div>
+    </div><!-- /an-hole-cards -->
+    <div class="c" id="an-hole-empty" style="display:none;padding:14px 12px;margin-bottom:4px;text-align:center;color:var(--gr600);font-size:11px;line-height:1.7;">
+      <div style="font-size:20px;margin-bottom:2px;">⛳</div>
+      아직 <b>홀별 기록</b>이 있는 라운드가 없습니다.<br>입력 탭에서 홀마다 기록하면 파별 평균·GIR·퍼팅 통계가 여기에 나옵니다.
     </div>
     <div class="c" style="padding:6px 10px;margin-bottom:4px;">
       <div class="at" style="margin-bottom:3px;">🤝 힘이 되는 동반자 TOP3 <span style="font-weight:400;font-size:9px;opacity:.7;">(최근 5경기)</span></div>
@@ -498,8 +566,24 @@ const G = (() => {
   const S = { round:null, saved:[], hole:0, player:0 };
 
   // ── Google Sheets 연동 ──
-  const GS_URL = 'https://script.google.com/macros/s/AKfycbyPmxQ_ubJuWiZ0QJHbwA1_tacD-nxGT5xc-mpv5yVl9B5-VhaW4kErPjVo1xHb3ntnUQ/exec';
+  // ⚠️ 웹 앱 주소를 이 파일(공개 저장소)에 적지 않습니다.
+  //    주소가 공개되면 누구나 기록을 읽고 덮어쓸 수 있습니다.
+  //    주소·키는 이 기기의 localStorage에만 저장하고, 설정 모달에서 입력합니다.
+  const CFG_KEY = 'golf_sync_cfg';
   let gsSyncTimer = null;
+
+  const cfgGet = () => { try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'null')||{}; }catch(e){ return {}; } };
+  const cfgSet = (o) => { try{ localStorage.setItem(CFG_KEY, JSON.stringify(o)); }catch(e){} };
+  const gsUrl = () => (cfgGet().url||'').trim();
+  const gsKey = () => (cfgGet().key||'').trim();
+  const gsReady = () => /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(gsUrl());
+  // 주소 끝에 키를 붙임 (스크립트에 키 검사를 넣은 경우)
+  const gsEndpoint = () => {
+    const u = gsUrl(), k = gsKey();
+    if(!k) return u;
+    return u + (u.includes('?')?'&':'?') + 'key=' + encodeURIComponent(k);
+  };
+  const setSync = (st) => { const el=document.getElementById('sync-dot'); if(el) el.dataset.st = st; };
 
   // localStorage 저장 (빠른 로컬 캐시)
   const persistLocal = () => { try{ localStorage.setItem('golf_v5', JSON.stringify({round:S.round,saved:S.saved})); }catch(e){} };
@@ -507,19 +591,20 @@ const G = (() => {
   // Google Sheets 저장 (디바운스 2초)
   const persistGS = () => {
     clearTimeout(gsSyncTimer);
+    if(!gsReady()){ setSync('off'); return; } // 동기화 미설정 → 이 기기에만 저장
     gsSyncTimer = setTimeout(async () => {
       try {
-        const body = JSON.stringify({ action:'save', saved: S.saved });
-        await fetch(GS_URL, {
+        const body = JSON.stringify({ action:'save', key: gsKey()||undefined, saved: S.saved });
+        await fetch(gsUrl(), {
           method:'POST', body,
           headers:{'Content-Type':'text/plain'} // CORS 우회
         });
-        document.getElementById('sync-dot').style.background='#16a34a'; // 초록 = 동기화됨
+        setSync('ok'); // 초록 = 동기화됨
       } catch(e) {
-        document.getElementById('sync-dot').style.background='#dc2626'; // 빨강 = 실패
+        setSync('err'); // 빨강 = 실패
       }
     }, 2000);
-    document.getElementById('sync-dot').style.background='#f59e0b'; // 노랑 = 저장중
+    setSync('wait'); // 노랑 = 저장중
   };
 
   // 통합 저장
@@ -529,20 +614,82 @@ const G = (() => {
   const hydrate = async () => {
     // 1. 로컬 데이터 먼저 (빠른 렌더)
     try{ const d=JSON.parse(localStorage.getItem('golf_v5')||'null'); if(d){S.round=d.round||null;S.saved=d.saved||[];} }catch(e){}
-    // 2. GS에서 불러오기
+    // 2. 동기화가 설정된 경우에만 GS에서 불러오기
+    if(!gsReady()){ setSync('off'); return; }
     try {
-      document.getElementById('sync-dot').style.background='#f59e0b';
-      const res = await fetch(GS_URL);
+      setSync('wait');
+      const res = await fetch(gsEndpoint());
       const data = await res.json();
-      if(data.ok && data.saved && data.saved.length >= S.saved.length){
+      if(data.ok===false){ setSync('err'); return; } // 키가 틀렸거나 스크립트 오류
+      if(data.saved && data.saved.length >= S.saved.length){
         S.saved = data.saved;
         persistLocal(); // 로컬 캐시 업데이트
       }
-      document.getElementById('sync-dot').style.background='#16a34a';
+      setSync('ok');
     } catch(e) {
-      document.getElementById('sync-dot').style.background='#dc2626';
+      setSync('err');
     }
   };
+
+  // ── 동기화 설정 ──
+  function openSyncSettings(){
+    const c=cfgGet();
+    document.getElementById('sy-url').value=c.url||'';
+    document.getElementById('sy-key').value=c.key||'';
+    const m=document.getElementById('sy-msg');
+    m.style.color='var(--gr600)';
+    m.textContent = c.url
+      ? '현재 연결 설정됨' + (c.key?' · 키 사용':' · 키 없음')
+      : '아직 설정되지 않았습니다. 기록은 이 기기에만 저장되고 있습니다.';
+    document.getElementById('sync-modal').classList.add('show');
+  }
+  function closeSyncSettings(){ document.getElementById('sync-modal').classList.remove('show'); }
+
+  async function saveSyncSettings(){
+    const url=document.getElementById('sy-url').value.trim();
+    const key=document.getElementById('sy-key').value.trim();
+    const m=document.getElementById('sy-msg');
+    if(url && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)){
+      m.style.color='var(--red)';
+      m.textContent='주소가 올바르지 않습니다. …/exec 로 끝나는 웹 앱 주소를 넣어주세요.';
+      return;
+    }
+    cfgSet({url, key});
+    if(!url){
+      setSync('off');
+      m.style.color='var(--gr600)';
+      m.textContent='동기화를 끄었습니다. 기록은 이 기기에만 저장됩니다.';
+      return;
+    }
+    m.style.color='var(--gr600)'; m.textContent='연결 확인 중…'; setSync('wait');
+    try{
+      const res = await fetch(gsEndpoint());
+      const data = await res.json();
+      if(data.ok===false) throw new Error('bad response');
+      const n = Array.isArray(data.saved) ? data.saved.length : 0;
+      if(n >= S.saved.length && n > 0){ S.saved = data.saved; persistLocal(); }
+      setSync('ok');
+      m.style.color='var(--g6)';
+      m.textContent = `연결되었습니다 ✓ 서버에 ${n}건의 기록이 있습니다.`;
+      const cur=document.querySelector('.tc.on');
+      if(cur){ if(cur.id==='c-records') renderRec(); if(cur.id==='c-analysis') renderAn(); }
+      setTimeout(closeSyncSettings, 1400);
+    }catch(e){
+      setSync('err');
+      m.style.color='var(--red)';
+      m.textContent='연결하지 못했습니다. 주소와 키를 확인하고, 스크립트를 "모든 사용자(익명)"로 배포했는지도 확인해 주세요.';
+    }
+  }
+
+  function clearSyncSettings(){
+    cfgSet({url:'', key:''});
+    setSync('off');
+    document.getElementById('sy-url').value='';
+    document.getElementById('sy-key').value='';
+    const m=document.getElementById('sy-msg');
+    m.style.color='var(--gr600)';
+    m.textContent='동기화를 끄었습니다. 기록은 이 기기에만 저장됩니다.';
+  }
 
   const td = () => { const d=new Date(); return`${d.getFullYear()}-${('0'+(d.getMonth()+1)).slice(-2)}-${('0'+d.getDate()).slice(-2)}`; };
   const fd = s => s ? s.replace(/-/g,'.') : '';
@@ -1106,12 +1253,124 @@ const G = (() => {
 
   function renderAn(){
     const all=[...S.saved]; if(S.round&&!all.find(r=>r.id===S.round.id)) all.unshift(S.round);
-    const r10=all.slice(0,10); let holes=0,strokes=0,penalties=0,gir=0,putts=0,ph=0,tp3=0;
+    // 최신순 정렬 (날짜 기준, 같은 날짜면 생성 순)
+    all.sort((a,b)=>{
+      const da=a.date||'', db=b.date||'';
+      if(da!==db) return da<db?1:-1;
+      return (a.createdAt||'')<(b.createdAt||'')?1:-1;
+    });
+    const $=id=>document.getElementById(id);
+    const fdShort=s=>s?s.slice(5).replace('-','/').replace(/^0/,''):'';
+    const nm=s=>{ s=(s||'').trim(); return s.length>7?s.slice(0,7)+'…':s; };
+
+    // ── ① 라운드 요약 (수동입력: 총타수만 있어도 계산) ──
+    const rsum=all.map(rnd=>{
+      let total=null, front=null, back=null;
+      if(rnd.manual){
+        const f=(typeof rnd.manualFront==='number'&&rnd.manualFront>0)?rnd.manualFront:null;
+        const b=(typeof rnd.manualBack==='number'&&rnd.manualBack>0)?rnd.manualBack:null;
+        front=f; back=b;
+        total=(typeof rnd.manualTotal==='number'&&rnd.manualTotal>0)?rnd.manualTotal
+             :(f!==null&&b!==null)?f+b:(f!==null?f:b);
+      } else if(Array.isArray(rnd.holes)&&rnd.holes.length){
+        const st=calcStats(rnd,0);
+        if(st.done>0){ total=st.total; front=st.front>0?st.front:null; back=st.back>0?st.back:null; }
+      }
+      return {rnd,total,front,back,date:rnd.date||''};
+    }).filter(x=>x.total!==null&&x.total>0);
+
+    if(rsum.length){
+      const totals=rsum.map(x=>x.total);
+      const avg=totals.reduce((a,b)=>a+b,0)/totals.length;
+      const pmAvg=avg-72;
+      $('an-sum-scope').textContent=`(전체 ${rsum.length}경기 · 파72 기준)`;
+      $('an-avg-total').textContent=avg.toFixed(1)+'타';
+      const pmEl=$('an-avg-pm');
+      pmEl.textContent=(pmAvg>0?'+':'')+pmAvg.toFixed(1);
+      pmEl.style.color=pmAvg>0?'var(--red)':pmAvg<0?'var(--blue)':'var(--g6)';
+      const srt=[...rsum].sort((a,b)=>a.total-b.total);
+      const best=srt[0], worst=srt[srt.length-1];
+      $('an-best').textContent=best.total+'타';
+      $('an-best-d').textContent=nm(best.rnd.course)+' '+fdShort(best.date);
+      $('an-worst').textContent=worst.total+'타';
+      $('an-worst-d').textContent=nm(worst.rnd.course)+' '+fdShort(worst.date);
+
+      // 최근 10경기 추이 (오래된 → 최신)
+      const l10=rsum.slice(0,10).reverse();
+      const mn=Math.min(...l10.map(x=>x.total)), mx=Math.max(...l10.map(x=>x.total));
+      const barH=v=> mx===mn?26: 8+Math.round((v-mn)/(mx-mn)*34);
+      $('an-trend').innerHTML='<div style="display:flex;align-items:flex-end;gap:3px;height:60px;">'
+        + l10.map((x,i)=>{
+            const last=i===l10.length-1;
+            const col=x.total<=avg?'#4caf7d':(x.total>=avg+4?'#e08a5a':'#d9b26a');
+            return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:1px;">`
+              + `<div style="font-size:8px;font-weight:${last?'800':'700'};color:${last?'var(--g8)':'var(--gr600)'};line-height:1;">${x.total}</div>`
+              + `<div style="width:100%;height:${barH(x.total)}px;background:${col};border-radius:2px 2px 0 0;"></div>`
+              + `<div style="font-size:6.5px;color:var(--gr400);line-height:1;white-space:nowrap;">${fdShort(x.date)}</div>`
+              + `</div>`;
+          }).join('')
+        + '</div>';
+      // 최근 N경기 vs 그 이전 N경기
+      const n=Math.min(5, Math.floor(rsum.length/2));
+      if(n>=1){
+        const rec=rsum.slice(0,n).map(x=>x.total), prv=rsum.slice(n,n*2).map(x=>x.total);
+        if(prv.length){
+          const ra=rec.reduce((a,b)=>a+b,0)/rec.length, pa=prv.reduce((a,b)=>a+b,0)/prv.length;
+          const dd=ra-pa;
+          $('an-trend-delta').innerHTML=`최근 ${n}경기 평균 <b>${ra.toFixed(1)}타</b>`
+            + (dd===0?' · 직전과 같음'
+              :` · 직전 ${n}경기 ${pa.toFixed(1)}타 대비 <b style="color:${dd<0?'var(--blue)':'var(--red)'};">${Math.abs(dd).toFixed(1)}타 ${dd<0?'↓':'↑'}</b>`);
+        }
+      }
+    } else {
+      $('an-sum-scope').textContent='';
+      $('an-avg-total').textContent='-타'; $('an-avg-pm').textContent='-';
+      $('an-best').textContent='-'; $('an-worst').textContent='-';
+      $('an-best-d').textContent=''; $('an-worst-d').textContent='';
+      $('an-trend').innerHTML='<div style="font-size:10px;color:var(--gr400);padding:6px 0;">기록이 없습니다</div>';
+      $('an-trend-delta').textContent='';
+    }
+
+    // ── ② 전반/후반 9홀 (전반·후반 타수가 있는 라운드 기준) ──
+    const fb=rsum.filter(x=>x.front!==null&&x.back!==null);
+    if(fb.length){
+      const fa=fb.reduce((a,x)=>a+x.front,0)/fb.length;
+      const ba=fb.reduce((a,x)=>a+x.back,0)/fb.length;
+      const dd=ba-fa;
+      $('an-fb-scope').textContent=`(${fb.length}경기)`;
+      $('an-front').textContent=fa.toFixed(1)+'타';
+      $('an-back').textContent=ba.toFixed(1)+'타';
+      const dfEl=$('an-fb-diff');
+      dfEl.textContent=(dd>0?'+':'')+dd.toFixed(1);
+      dfEl.style.color=dd>0?'var(--red)':dd<0?'var(--blue)':'var(--g6)';
+      $('an-fb-note').textContent=dd===0?'전반과 후반이 같습니다'
+        :`후반 9홀이 전반보다 ${Math.abs(dd).toFixed(1)}타 ${dd>0?'많습니다':'적습니다'}`;
+    } else {
+      $('an-front').textContent='-';
+      $('an-back').textContent='-';
+      $('an-fb-diff').textContent='-';
+      $('an-fb-note').textContent='전반·후반 타수가 입력된 라운드가 없습니다';
+    }
+
+    // ── ③ 홀바이홀 통계: holes 데이터가 있는 최근 라운드로 대체 ──
+    const holeRounds=all.filter(rnd=>Array.isArray(rnd.holes) && rnd.holes.some(h=>h.scores&&h.scores[0]&&h.scores[0].strokes!==null)).slice(0,10);
+    const holeCards=$('an-hole-cards'), holeEmpty=$('an-hole-empty');
+    if(!holeRounds.length){
+      if(holeCards) holeCards.style.display='none';
+      if(holeEmpty) holeEmpty.style.display='block';
+    } else {
+      if(holeCards) holeCards.style.display='block';
+      if(holeEmpty) holeEmpty.style.display='none';
+      const label=`(홀 기록 ${holeRounds.length}경기 · ${fd(holeRounds[0].date)} 기준)`;
+      document.querySelectorAll('.anh-scope').forEach(el=>el.textContent=label);
+    }
+
+    let holes=0,strokes=0,penalties=0,gir=0,putts=0,ph=0,tp3=0;
     const dist={eagle:0,birdie:0,par:0,bogey:0,double:0,triple:0};
     const parA={3:{n:0,s:0,g:0},4:{n:0,s:0,g:0},5:{n:0,s:0,g:0}};
     const tee={leftPenalty:0,leftRough:0,fairway:0,rightRough:0,rightPenalty:0};
     const pdir={up:0,left:0,in:0,right:0,down:0};
-    r10.forEach(rnd=>rnd.holes.forEach(h=>{const sc=h.scores[0];if(!sc||sc.strokes===null)return;
+    holeRounds.forEach(rnd=>rnd.holes.forEach(h=>{const sc=h.scores[0];if(!sc||sc.strokes===null)return;
       holes++;strokes+=sc.strokes;penalties+=sc.penalty||0;
       if(tee[sc.tee]!==undefined)tee[sc.tee]++;if(pdir[sc.puttDir]!==undefined)pdir[sc.puttDir]++;
       const d=sc.strokes-h.par;d<=-2?dist.eagle++:d===-1?dist.birdie++:d===0?dist.par++:d===1?dist.bogey++:d===2?dist.double++:dist.triple++;
@@ -1119,7 +1378,7 @@ const G = (() => {
       if(sc.putts!==null){putts+=sc.putts;ph++;if(sc.putts>=3)tp3++;if((sc.strokes-sc.putts)<=h.par-2){gir++;if(parA[h.par])parA[h.par].g++;}}
     }));
     document.getElementById('an-avg').textContent=holes>0?(strokes/holes).toFixed(1)+' 타':'-';
-    document.getElementById('an-pen').textContent=r10.length>0?(penalties/r10.length).toFixed(1)+' 타':'0 타';
+    document.getElementById('an-pen').textContent=holeRounds.length>0?(penalties/holeRounds.length).toFixed(1)+' 타':'0 타';
     const bgColors=['#ede9fe','#dbeafe','#dcfce7','#fef9c3','#ffedd5','#ffe4e6'];
     const dItems=[{k:'eagle',l:'이글'},{k:'birdie',l:'버디'},{k:'par',l:'파'},{k:'bogey',l:'보기'},{k:'double',l:'더블'},{k:'triple',l:'트리플'}];
     const mx=Math.max(...dItems.map(d=>dist[d.k]),1);
@@ -1156,7 +1415,7 @@ const G = (() => {
     // 동반자별 최근 5경기만 사용해 평균 계산
     const compList = Object.entries(compGames)
       .map(([name, games]) => {
-        const recent = games.slice(-5); // S.saved는 최신순이므로 앞에서 5개
+        const recent = games.slice(0,5); // S.saved는 최신순이므로 앞에서 5개
         const total = recent.reduce((s,g) => s+g.pm, 0);
         return { name, n: recent.length, total_n: games.length, avg: total/recent.length };
       })
@@ -1206,6 +1465,11 @@ const G = (() => {
     else{ document.getElementById('rs-course').textContent='새 라운드를 시작해주세요'; document.getElementById('rs-date').textContent='우측 상단 버튼을 눌러주세요'; }
     // 기록 탭이 열려있으면 재렌더
     if(document.getElementById('c-records').style.display==='block') renderRec();
+    // 동기화가 설정되지 않은 경우 한 번만 안내
+    if(!gsReady() && S.saved.length && !localStorage.getItem('golf_sync_hint')){
+      try{ localStorage.setItem('golf_sync_hint','1'); }catch(e){}
+      setTimeout(()=>toast('제목 옆 동그란 점을 누르면 구글 시트 동기화를 설정할 수 있어요'), 1500);
+    }
   });
 
   function openEditModal(id){
@@ -1396,7 +1660,7 @@ const G = (() => {
     setTimeout(()=>window.print(), 300);
   }
 
-  return{tab,openModal,closeModal,startRound,save,setPar,setTee,adj,setPuttDir,nextHole,prevHole,jump,switchP,confirmDel,loadRound,resetToPar,resetField,closeCfm,deleteRound,printSC,exportExcel,openManualInput,closeManualInput,saveManualInput,toggleYear,yearSwipe,openEditModal,closeEditModal,saveEdit};
+  return{tab,openModal,closeModal,startRound,save,setPar,setTee,adj,setPuttDir,nextHole,prevHole,jump,switchP,confirmDel,loadRound,resetToPar,resetField,closeCfm,deleteRound,printSC,exportExcel,openManualInput,closeManualInput,saveManualInput,toggleYear,yearSwipe,openEditModal,closeEditModal,saveEdit,openSyncSettings,closeSyncSettings,saveSyncSettings,clearSyncSettings};
 })();
 
 // 서비스워커 등록 (오프라인 지원)
